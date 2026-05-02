@@ -72,11 +72,13 @@ async function testConnection() {
     }
 
     // Try to authenticate
+    const loginBody = { username: config.email, password: config.password };
     console.log('   Attempting to authenticate...');
-    const response = await client.post('/api/v1/users/login', {
-      username: config.email,
-      password: config.password,
-    });
+    console.log('   POST /api/v1/users/login');
+    console.log('   Request body:', JSON.stringify({ ...loginBody, password: '***' }, null, 2));
+    const response = await client.post('/api/v1/users/login', loginBody);
+    console.log('   Response status:', response.status);
+    console.log('   Response body:', JSON.stringify(response.data, null, 2));
 
     if (response.data && response.data.token) {
       console.log('   ✅ Authentication successful!');
@@ -87,26 +89,44 @@ async function testConnection() {
         baseURL: config.homeboxUrl,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${response.data.token}`,
+          'Authorization': response.data.token,
         },
       });
 
       console.log('\nTesting API access...');
 
       try {
+        console.log('   GET /api/v1/locations');
         const locationsResponse = await authClient.get('/api/v1/locations');
+        console.log('   Response status:', locationsResponse.status);
+        console.log('   Response body:', JSON.stringify(locationsResponse.data, null, 2));
         console.log('   ✅ Successfully fetched locations');
         console.log(`   Found ${locationsResponse.data?.items?.length || 0} locations`);
       } catch (error) {
-        console.log('   ⚠️  Could not fetch locations (this might be normal if you have no locations yet)');
+        console.log('   ⚠️  Could not fetch locations');
+        if (error.response) {
+          console.log('   Status:', error.response.status);
+          console.log('   Response body:', JSON.stringify(error.response.data, null, 2));
+        } else {
+          console.log('   Error:', error.message);
+        }
       }
 
       try {
+        console.log('   GET /api/v1/items');
         const itemsResponse = await authClient.get('/api/v1/items');
+        console.log('   Response status:', itemsResponse.status);
+        console.log('   Response body:', JSON.stringify(itemsResponse.data, null, 2));
         console.log('   ✅ Successfully fetched items');
         console.log(`   Found ${itemsResponse.data?.items?.length || 0} items`);
       } catch (error) {
-        console.log('   ⚠️  Could not fetch items (this might be normal if you have no items yet)');
+        console.log('   ⚠️  Could not fetch items');
+        if (error.response) {
+          console.log('   Status:', error.response.status);
+          console.log('   Response body:', JSON.stringify(error.response.data, null, 2));
+        } else {
+          console.log('   Error:', error.message);
+        }
       }
 
       console.log('\n=================================');
@@ -118,6 +138,7 @@ async function testConnection() {
 
     } else {
       console.error('   ❌ Authentication failed: No token received');
+      console.error('   Response body:', JSON.stringify(response.data, null, 2));
       process.exit(1);
     }
 
@@ -126,7 +147,8 @@ async function testConnection() {
 
     if (error.response) {
       console.error('   Status:', error.response.status);
-      console.error('   Error:', error.response.data?.message || error.response.statusText);
+      console.error('   Response headers:', JSON.stringify(error.response.headers, null, 2));
+      console.error('   Response body:', JSON.stringify(error.response.data, null, 2));
 
       if (error.response.status === 401) {
         console.error('\n   This usually means your email or password is incorrect.');
@@ -137,6 +159,7 @@ async function testConnection() {
       console.error('   Make sure Homebox is running at:', config.homeboxUrl);
     } else {
       console.error('   Error:', error.message);
+      console.error('   Stack:', error.stack);
     }
 
     process.exit(1);

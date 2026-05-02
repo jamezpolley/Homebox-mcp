@@ -59,7 +59,7 @@ class Tools:
         if not self.token:
             self._authenticate()
         return {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": self.token,
             "Content-Type": "application/json"
         }
 
